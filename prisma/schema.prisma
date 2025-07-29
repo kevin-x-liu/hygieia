@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  password            String? // Used for credentials provider
+  emailVerified       DateTime?
+  image               String?
+
+  // Custom fields
+  profile             UserProfile?
+  pantryItems         PantryItem[]
+  conversations       Conversation[]
+  conversationHistory ConversationMessage[]
+}
+
+model UserProfile {
+  userId             String   @id
+  healthGoal         String?
+  dietaryPreferences String[]
+  fitnessLevel       String?  // New field for fitness level
+  openaiApiKeyHash   String?  // Encrypted API key
+  hasApiKey          Boolean  @default(false) // Flag to indicate if user has set an API key
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PantryItem {
+  id       String   @id @default(cuid())
+  userId   String
+  itemName String
+  category String
+  notes    String?
+  addedAt  DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  lastMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    ConversationMessage[]
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  userId         String
+  conversationId String
+  role           String // "user" or "assistant"
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
